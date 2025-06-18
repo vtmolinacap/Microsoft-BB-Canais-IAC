@@ -8,6 +8,27 @@ resource "azurerm_monitor_diagnostic_setting" "diagnostic" {
     category = "AllMetrics"
     enabled  = true
   }
+  
+  log {
+    category = "LinuxSyslog"
+    enabled = true
+
+    retention_policy {
+      enabled = false
+      days = 0
+    } 
+  }
+
+  log {
+    category = "LinuxSyslogEvents"
+    enabled = true
+
+    retention_policy {
+      enabled = false
+      days = 0
+    }
+
+}
 }
 
 resource "azurerm_monitor_smart_detector_alert_rule" "alert" {
@@ -16,7 +37,7 @@ resource "azurerm_monitor_smart_detector_alert_rule" "alert" {
   resource_group_name          = var.resource_group.name
   scope_resource_ids           = [var.virtual_machine.id]
   detector_type                = "FailureAnomaliesDetector"  # Corrigido para um tipo de detector válido
-  frequency = "PT1M"  # Frequência de 1 hora
+  frequency                    = "PT1M"  # Frequência de 1 hora
   severity                     = "Sev3"
 
   action_group {

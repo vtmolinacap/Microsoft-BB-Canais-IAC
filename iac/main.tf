@@ -57,7 +57,14 @@ module "monitor" {
   log_analytics_workspace    = azurerm_log_analytics_workspace.workspace
 }
 
+module "dashboard" {
+  source          = "./modules/dashboard"
+  resource_group  = azurerm_resource_group.rg
+  virtual_machine = azurerm_virtual_machine.vm
+}
+
 output "vm_id" {
   description = "ID da máquina virtual"
   value       = azurerm_virtual_machine.vm.id
 }
+
