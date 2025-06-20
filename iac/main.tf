@@ -1,70 +1,103 @@
+# Definindo o grupo de recursos
 resource "azurerm_resource_group" "rg" {
-  name     = "rg-suse-vm"
+  name     = "rg-suseweblogic-prod-eastus"
   location = "eastus"
 }
 
-resource "azurerm_virtual_machine" "vm" {
-  name                  = "example-suse-vm"
-  resource_group_name   = azurerm_resource_group.rg.name
-  location              = azurerm_resource_group.rg.location
-  vm_size               = "Standard_B1ms"  # Tamanho da VM
-  network_interface_ids = [module.network.nic_id]  # Referência à interface de rede do módulo
-
-storage_image_reference {
-  publisher = "SUSE"
-  offer     = "sles-15-sp5"  # ou a versão que deseja
-  sku       = "gen2"
-  version   = "latest"
-}
-  storage_os_disk {
-    name           = "os-disk"
-    caching        = "ReadWrite"
-    create_option  = "FromImage"
-    disk_size_gb   = 30  # Tamanho do disco
-  }
-
-  os_profile {
-    computer_name  = "example-suse-vm"
-    admin_username = "adminuser"
-    admin_password = "P@ssw0rd1234"  # Exemplo de senha
-  }
-
-  os_profile_linux_config {
-    disable_password_authentication = false
-  }
-
-  tags = {
-    environment = "production"
-  }
-}
-
-module "network" {
-  source                = "./modules/network"
-  location             = azurerm_resource_group.rg.location  # Passando a localização do grupo de recursos
-  resource_group_name  = azurerm_resource_group.rg.name     # Passando o nome do grupo de recursos
-}
-
-resource "azurerm_log_analytics_workspace" "workspace" {
-  name                = "example-log-analytics"
+# Módulo para a VM SUSE
+module "suse_vm" {
+  source              = "./modules/vm"
+  vm_name             = "vm-suse-prod-eastus"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
+  vm_size             = "Standard_B1ms"
+  admin_username      = var.admin_username
+  admin_password      = var.admin_password
+  nic_id              = module.network.nic_id
+  image_publisher     = "SUSE"
+  image_offer         = "sles-15-sp5"
+  image_sku           = "gen2"
+  image_version       = "2024.01.01" # Versão fixa para consistência
+  environment         = "prod"
 }
 
-module "monitor" {
+# Módulo para a VM WebLogic
+module "weblogic_vm" {
+  source              = "./modules/vm"
+  vm_name             = "vm-weblogic-prod-eastus"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  vm_size             = "Standard_D2s_v3" # Maior para WebLogic
+  admin_username      = var.admin_username
+  admin_password      = var.admin_password
+  nic_id              = module.network.weblogic_nic_id
+  image_publisher     = "Oracle"
+  image_offer         = "weblogic-server"
+  image_sku           = "weblogic-12"
+  image_version       = "latest"
+  environment         = "prod"
+}
+
+# Módulo de rede
+module "network" {
+  source              = "./modules/network"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  environment         = "prod"
+}
+
+# Workspace do Log Analytics
+resource "azurerm_log_analytics_workspace" "workspace" {
+  name                = "log-suseweblogic-prod-eastus"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+# Módulo de monitoramento para VM SUSE
+module "suse_monitor" {
   source                     = "./modules/monitor"
-  resource_group             = azurerm_resource_group.rg
-  virtual_machine            = azurerm_virtual_machine.vm
-  log_analytics_workspace    = azurerm_log_analytics_workspace.workspace
+  resource_group_name        = azurerm_resource_group.rg.name
+  virtual_machine_id         = module.suse_vm.vm_id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.workspace.id
+  environment                = "prod"
 }
 
-module "dashboard" {
-  source          = "./modules/dashboard"
-  resource_group  = azurerm_resource_group.rg
-  virtual_machine = azurerm_virtual_machine.vm
+# Módulo de monitoramento para VM WebLogic
+module "weblogic_monitor" {
+  source                     = "./modules/monitor"
+  resource_group_name        = azurerm_resource_group.rg.name
+  virtual_machine_id         = module.weblogic_vm.vm_id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.workspace.id
+  environment                = "prod"
 }
 
-output "vm_id" {
-  description = "ID da máquina virtual"
-  value       = azurerm_virtual_machine.vm.id
+# Módulo de dashboard para VM SUSE
+module "suse_dashboard" {
+  source              = "./modules/dashboard"
+  resource_group_name = azurerm_resource_group.rg.name
+  virtual_machine_id  = module.suse_vm.vm_id
+  nic_id              = module.network.nic_id
+  environment         = "prod"
 }
 
+# Módulo de dashboard para VM WebLogic
+module "weblogic_dashboard" {
+  source              = "./modules/dashboard"
+  resource_group_name = azurerm_resource_group.rg.name
+  virtual_machine_id  = module.weblogic_vm.vm_id
+  nic_id              = module.network.weblogic_nic_id
+  environment         = "prod"
+}
+
+# Outputs
+output "suse_vm_id" {
+  description = "ID da máquina virtual SUSE"
+  value       = module.suse_vm.vm_id
+}
+
+output "weblogic_vm_id" {
+  description = "ID da máquina virtual WebLogic"
+  value       = module.weblogic_vm.vm_id
+}
