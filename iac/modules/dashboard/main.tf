@@ -37,7 +37,7 @@ resource "azurerm_portal_dashboard" "vm_dashboard" {
                   ChartType = "LineChart"
                   Metrics = [
                     {
-                      ResourceId    = var.virtual_machine_id
+                      ResourceId     = var.virtual_machine_id
                       MetricNamespace = "Microsoft.Compute/virtualMachines"
                       MetricName     = "Percentage CPU"
                       Aggregation    = "Average"
@@ -63,19 +63,71 @@ resource "azurerm_portal_dashboard" "vm_dashboard" {
                   ChartType = "LineChart"
                   Metrics = [
                     {
-                      ResourceId    = var.nic_id
+                      ResourceId     = var.nic_id
                       MetricNamespace = "Microsoft.Network/networkInterfaces"
                       MetricName     = "Network In Total"
                       Aggregation    = "Total"
                     },
                     {
-                      ResourceId    = var.nic_id
+                      ResourceId     = var.nic_id
                       MetricNamespace = "Microsoft.Network/networkInterfaces"
                       MetricName     = "Network Out Total"
                       Aggregation    = "Total"
                     }
                   ]
                   Title = "Tráfego de Rede"
+                }
+              }
+            }
+          }
+          "4" = {
+            position = {
+              x      = 0
+              y      = 10
+              rowSpan = 6
+              colSpan = 6
+            }
+            metadata = {
+              type = "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart"
+              settings = {
+                content = {
+                  Version   = "1.0"
+                  ChartType = "LineChart"
+                  Metrics = [
+                    {
+                      ResourceId     = var.virtual_machine_id
+                      MetricNamespace = "azure.applicationinsights"
+                      MetricName     = "process.memory.heap.used"
+                      Aggregation    = "Average"
+                    }
+                  ]
+                  Title = "Uso de Heap JVM (WebLogic)"
+                }
+              }
+            }
+          }
+          "5" = {
+            position = {
+              x      = 6
+              y      = 10
+              rowSpan = 6
+              colSpan = 6
+            }
+            metadata = {
+              type = "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart"
+              settings = {
+                content = {
+                  Version   = "1.0"
+                  ChartType = "LineChart"
+                  Metrics = [
+                    {
+                      ResourceId     = var.virtual_machine_id
+                      MetricNamespace = "azure.applicationinsights"
+                      MetricName     = "sessions.active.count"
+                      Aggregation    = "Total"
+                    }
+                  ]
+                  Title = "Sessões Ativas (WebLogic)"
                 }
               }
             }
@@ -97,5 +149,8 @@ resource "azurerm_portal_dashboard" "vm_dashboard" {
 
   tags = {
     environment = var.environment
+    project     = "suse-weblogic"
+    owner       = "it-team"
+    cost_center = "12345"
   }
 }

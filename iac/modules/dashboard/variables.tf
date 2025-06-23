@@ -16,6 +16,10 @@ variable "nic_id" {
 variable "environment" {
   description = "Ambiente (ex.: prod, dev)"
   type        = string
+  validation {
+    condition     = contains(["prod", "dev", "staging"], var.environment)
+    error_message = "O ambiente deve ser prod, dev ou staging."
+  }
 }
 
 variable "time_range_ms" {

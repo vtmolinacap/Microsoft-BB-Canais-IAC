@@ -16,10 +16,13 @@ variable "log_analytics_workspace_id" {
 variable "environment" {
   description = "Ambiente (ex.: prod, dev)"
   type        = string
+  validation {
+    condition     = contains(["prod", "dev", "staging"], var.environment)
+    error_message = "O ambiente deve ser prod, dev ou staging."
+  }
 }
 
 variable "alert_email" {
   description = "Endereço de e-mail para notificações de alerta"
   type        = string
-  default     = "admin@example.com"
 }
